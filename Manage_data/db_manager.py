@@ -1,66 +1,82 @@
+import pandas as pd
 import sqlite3
 import os
 
+from Manage_data.scraper import *
 
 # Configurations
 DATABASE_PATH = os.path.join('instance', 'stocks.sqlite')
 
+import sqlite3
 
-def save_to_db(df, db_path=DATABASE_PATH):
+def check_entry(title, db_path=DATABASE_PATH, table_name="stocks"):
+    """Check if a given title already exists in the database."""
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    query = f"SELECT COUNT(*) FROM {table_name} WHERE Title = ?"
+    cursor.execute(query, (title,))
+    result = cursor.fetchone()[0]
+
+    conn.close()
+    
+    return result > 0
+
+
+def add_history(df, db_path=DATABASE_PATH):
     """Save a Pandas DataFrame to SQLite while ensuring column names match."""
     conn = sqlite3.connect(db_path)
     df.to_sql("stocks", conn, if_exists="append", index=False, method="multi")
     conn.close()
 
-# def add_summary_subtitles(channel_id:str, max_results:int = 7):
-#     """
-#     Function to summarize and add this to the database.
+def add_yahoo(title:str):
+    url = f'https://finance.yahoo.com/quote/{title}/history/?period1=1000000000&period2=19999999999'
+    if check_entry(title=title):
+        print('entry already exists or no title') # Im gonna change this
+    else: 
+        df = parse_yahoo(url)
+        df = treat_yahoo(df)
+        add_history(df)
 
-#     Args:
-#         channel_id: id of a youtube channel.
-#     """
-#     conn = sqlite3.connect(DATABASE)
-    
-#     try:
-#         video_list = get_video(channel_id=channel_id, max_results=max_results)
-#         for video in video_list: 
-#             if entry_exists(conn, video['date'], video['name']):
-#                 print(f"An entry with {video['date']} and {video['name']} already exists.\n\n\n")
-#                 continue         
-#             text = get_subtitles(video['video_id'])
-#             text = synthesize_video_with_llm(text[:8000])
-#             add_entry(conn, video['date'], video['name'], text, video['title'])
-#     finally:
-#         conn.close()
+def select_step(df, granularity="daily"):
+    df['Date'] = pd.to_datetime(df['Date'])
 
-# def check_entry_info(conn, scan): 
-#     cursor = conn.cursor()
-#     cursor.execute(
-#         'SELECT 1 FROM scan_info WHERE scan = ?',
-#         (scan,)
-#     )
-#     return cursor.fetchone() is not None
+    if granularity == "daily":
+        return df
+    elif granularity == "weekly":
+        rule = "W-MON"
+    elif granularity == "monthly":
+        rule = "MS"
+    else:
+        raise ValueError("Invalid granularity. Choose 'weekly', 'monthly'")
 
-# def entry_exists(conn, date, name):
-#     """
-#     Function to check if an entry with the given date and name already exists in the database.
-    
-#     Args:
-#         conn (sqlite3.Connection): Database connection.
-#         date (str): Date in format YYYY-MM-DDTHH:MM:SSZ.
-#         name (str): Name of the YouTube channel.
-        
-#     Returns:
-#         bool: True if the entry exists, False otherwise.
-#     """
-#     cursor = conn.cursor()
-#     cursor.execute(
-#         'SELECT 1 FROM yt_summaries WHERE date = ? AND name = ?',
-#         (date, name)
-#     )
-#     return cursor.fetchone() is not None
+    aggregation = {
+        'Open': 'first',
+        'High': 'max',
+        'Low': 'min',
+        'Close': 'last',
+        'Adj_Close': 'last',
+        'Volume': 'sum',
+        'Title': 'first'
+    }
 
+    df = df.set_index('Date').resample(rule).agg(aggregation).reset_index()
+
+    return df
+
+def get_data(title:str, granularity='daily', db_path=DATABASE_PATH, table_name="stocks"):
+    """
+    Retrieve data from an SQLite database and return it as a Pandas DataFrame.
+    granularity = daily or weekly or monthly
+    """
+    add_yahoo(title)
+    conn = sqlite3.connect(db_path)   
+    query = f"SELECT * FROM {table_name} WHERE Title = ?"
+    df = pd.read_sql_query(query, conn, params=(title,))
+    df = select_step(df=df, granularity=granularity)
+    conn.close()
+    return df
 
 # Example usage
 if __name__ == '__main__':
-    print('test')
+    get_data('META')
