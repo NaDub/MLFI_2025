@@ -38,10 +38,31 @@ This project is designed to scrape stock data from Yahoo Finance, analyze styliz
 
 ## Usage
 
-- **Scraping Data:** Run the scraper to collect stock data from Yahoo Finance:
+- **Scraping Data:** Use following function to collect stock data from Yahoo Finance:
   ```sh
-  python Manage_data/scraper.py
+  from Manage_data.scraper import get_data
+
+  get_data('META') 
   ```
+output:
+```
+>>> get_data('META')
+entry already exists or no title
+     Title       Date    Open    High     Low   Close  Adj_close     Volume
+0     META 2025-02-18  736.00  736.73  706.44  716.37     716.37   21815704
+1     META 2025-02-14  726.14  740.91  725.62  736.67     736.67   16884300
+2     META 2025-02-13  721.52  729.00  718.04  728.56     728.56   12569100
+3     META 2025-02-12  715.30  727.10  712.60  725.38     725.38   12016500
+4     META 2025-02-11  713.32  723.66  710.04  719.80     719.80   12998000
+...    ...        ...     ...     ...     ...     ...        ...        ...
+3201  META 2012-05-24   32.95   33.21   31.77   33.03      32.90   50237200
+3202  META 2012-05-23   31.37   32.50   31.36   32.00      31.88   73600000
+3203  META 2012-05-22   32.61   33.59   30.94   31.00      30.88  101786600
+3204  META 2012-05-21   36.53   36.66   33.00   34.03      33.90  168192700
+3205  META 2012-05-18   42.05   45.00   38.00   38.23      38.08  573576400
+
+[3206 rows x 8 columns]
+```
 - **Analyzing Stylized Facts:** Use the modules in `StilizedFacts` to verify key financial properties.
 - **Running Prediction Algorithms:** The `Algorithm` directory contains various models for predicting stock trends.
 - **Visualizing Data:** Utilize the `Visualize` module to generate meaningful graphs and insights.
