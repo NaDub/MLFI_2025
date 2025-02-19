@@ -5,9 +5,9 @@ import os
 from Manage_data.scraper import *
 
 # Configurations
-DATABASE_PATH = os.path.join('instance', 'stocks.sqlite')
-
-import sqlite3
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE_PATH = os.path.join(BASE_DIR, "../instance/stocks.sqlite")  # Remonte d'un niveau et va dans instance
+DATABASE_PATH = os.path.abspath(DATABASE_PATH) 
 
 def check_entry(title, db_path=DATABASE_PATH, table_name="stocks"):
     """Check if a given title already exists in the database."""
@@ -99,5 +99,5 @@ def get_data(title: str, granularity='daily', db_path=DATABASE_PATH, table_name=
 
 # Example usage
 if __name__ == '__main__':
-    df = get_data('^FCHI')
+    df = get_data('META')
     df.head()
