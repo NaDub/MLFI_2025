@@ -30,7 +30,7 @@ def add_history(df, db_path=DATABASE_PATH):
     conn.close()
 
 def add_yahoo(title:str):
-    url = f'https://finance.yahoo.com/quote/{title}/history/?period1=1000000000&period2=19999999999'
+    url = f'https://finance.yahoo.com/quote/{title}/history/?period1=1262304000&period2=19999999999'
     if check_entry(title=title):
         print('entry already exists or no title') # Im gonna change this
     else: 
@@ -64,13 +64,33 @@ def select_step(df, granularity="daily"):
 
     return df
 
-def get_data(title:str, granularity='daily', db_path=DATABASE_PATH, table_name="stocks"):
+def get_data(title: str, granularity='daily', db_path=DATABASE_PATH, table_name="stocks") -> pd.DataFrame:
     """
-    Retrieve data from an SQLite database and return it as a Pandas DataFrame.
-    granularity = daily or weekly or monthly
+    Fetches financial data from an SQLite database and returns it as a Pandas DataFrame.
+
+    This function retrieves stock market data for a given title (e.g., stock symbol) from 
+    a specified database table. It also ensures that data is available by calling `add_yahoo(title)`, 
+    which fetches missing data if necessary. The retrieved data is then processed based on 
+    the selected granularity.
+
+    Parameters:
+    - title (str): The stock symbol or financial instrument identifier (e.g., '^FCHI').
+    - granularity (str, optional): The time frame for aggregation. 
+      Options: 'daily' (default), 'weekly', or 'monthly'.
+    - db_path (str, optional): Path to the SQLite database file. Defaults to `DATABASE_PATH`.
+    - table_name (str, optional): Name of the database table containing stock data. Defaults to "stocks".
+
+    Returns:
+    - pd.DataFrame: A DataFrame containing the requested financial data with the specified granularity.
+
+    Example:
+    ```python
+    df = get_data('^FCHI', granularity='weekly')
+    print(df.head())
+    ```
     """
     add_yahoo(title)
-    conn = sqlite3.connect(db_path)   
+    conn = sqlite3.connect(db_path)
     query = f"SELECT * FROM {table_name} WHERE Title = ?"
     df = pd.read_sql_query(query, conn, params=(title,))
     df = select_step(df=df, granularity=granularity)
@@ -79,4 +99,5 @@ def get_data(title:str, granularity='daily', db_path=DATABASE_PATH, table_name="
 
 # Example usage
 if __name__ == '__main__':
-    get_data('META')
+    df = get_data('^FCHI')
+    df.head()

@@ -73,7 +73,7 @@ def treat_yahoo(df:pd.DataFrame):
 
 
 if __name__ == '__main__':
-    tester = parse_yahoo('https://finance.yahoo.com/quote/META/history/?period1=1582042649&period2=1739895424')
+    tester = parse_yahoo('https://finance.yahoo.com/quote/^FCHI/history/?period1=1262303940&period2=1739895424')
     print(tester.head())
     tester = treat_yahoo(tester)
     print(tester.head())
