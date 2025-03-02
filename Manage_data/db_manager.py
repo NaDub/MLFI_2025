@@ -30,6 +30,7 @@ def add_history(df, db_path=DATABASE_PATH):
     conn.close()
 
 def add_yahoo(title:str):
+    print(f'Adding Symbol: {title}')
     url = f'https://finance.yahoo.com/quote/{title}/history/?period1=1262304000&period2=19999999999'
     if check_entry(title=title):
         print('entry already exists or no title') # Im gonna change this
@@ -64,38 +65,84 @@ def select_step(df, granularity="daily"):
 
     return df
 
-def get_data(title: str, granularity='daily', db_path=DATABASE_PATH, table_name="stocks") -> pd.DataFrame:
-    """
-    Fetches financial data from an SQLite database and returns it as a Pandas DataFrame.
+import sqlite3
+import pandas as pd
+from typing import List
 
-    This function retrieves stock market data for a given title (e.g., stock symbol) from 
-    a specified database table. It also ensures that data is available by calling `add_yahoo(title)`, 
-    which fetches missing data if necessary. The retrieved data is then processed based on 
-    the selected granularity.
+def get_data(titles: List[str], granularity='daily', db_path=DATABASE_PATH, table_name="stocks") -> pd.DataFrame:
+    """
+    Fetches financial data for multiple stock symbols from an SQLite database 
+    and returns it as a Pandas DataFrame.
 
     Parameters:
-    - title (str): The stock symbol or financial instrument identifier (e.g., '^FCHI').
+    - titles (List[str]): A list of stock symbols (e.g., ['AAPL', 'GOOGL']).
     - granularity (str, optional): The time frame for aggregation. 
       Options: 'daily' (default), 'weekly', or 'monthly'.
     - db_path (str, optional): Path to the SQLite database file. Defaults to `DATABASE_PATH`.
     - table_name (str, optional): Name of the database table containing stock data. Defaults to "stocks".
 
     Returns:
-    - pd.DataFrame: A DataFrame containing the requested financial data with the specified granularity.
+    - pd.DataFrame: A DataFrame containing the requested financial data 
+      with the specified granularity for all titles.
 
     Example:
     ```python
-    df = get_data('^FCHI', granularity='weekly')
+    df = get_data(['AAPL', 'GOOGL'], granularity='weekly')
     print(df.head())
     ```
     """
-    add_yahoo(title)
+    
+    if isinstance(titles, str):
+        titles = [titles]
+
+    if not titles:
+        raise ValueError("The list of titles cannot be empty.")
+    
+    for title in titles:
+        add_yahoo(title)
+
     conn = sqlite3.connect(db_path)
-    query = f"SELECT * FROM {table_name} WHERE Title = ?"
-    df = pd.read_sql_query(query, conn, params=(title,))
+    placeholders = ','.join('?' * len(titles))
+    query = f"SELECT * FROM {table_name} WHERE Title IN ({placeholders})"
+    df = pd.read_sql_query(query, conn, params=titles)
     df = select_step(df=df, granularity=granularity)
     conn.close()
+
     return df
+
+
+# def get_data(title: str, granularity='daily', db_path=DATABASE_PATH, table_name="stocks") -> pd.DataFrame:
+#     """
+#     Fetches financial data from an SQLite database and returns it as a Pandas DataFrame.
+
+#     This function retrieves stock market data for a given title (e.g., stock symbol) from 
+#     a specified database table. It also ensures that data is available by calling `add_yahoo(title)`, 
+#     which fetches missing data if necessary. The retrieved data is then processed based on 
+#     the selected granularity.
+
+#     Parameters:
+#     - title (str): The stock symbol or financial instrument identifier (e.g., '^FCHI').
+#     - granularity (str, optional): The time frame for aggregation. 
+#       Options: 'daily' (default), 'weekly', or 'monthly'.
+#     - db_path (str, optional): Path to the SQLite database file. Defaults to `DATABASE_PATH`.
+#     - table_name (str, optional): Name of the database table containing stock data. Defaults to "stocks".
+
+#     Returns:
+#     - pd.DataFrame: A DataFrame containing the requested financial data with the specified granularity.
+
+#     Example:
+#     ```python
+#     df = get_data('^FCHI', granularity='weekly')
+#     print(df.head())
+#     ```
+#     """
+#     add_yahoo(title)
+#     conn = sqlite3.connect(db_path)
+#     query = f"SELECT * FROM {table_name} WHERE Title = ?"
+#     df = pd.read_sql_query(query, conn, params=(title,))
+#     df = select_step(df=df, granularity=granularity)
+#     conn.close()
+#     return df
 
 # Example usage
 if __name__ == '__main__':
