@@ -49,21 +49,22 @@ def select_step(df, granularity="daily"):
     elif granularity == "monthly":
         rule = "MS"
     else:
-        raise ValueError("Invalid granularity. Choose 'weekly', 'monthly'")
+        raise ValueError("Invalid granularity. Choose 'daily', 'weekly', 'monthly'")
 
     aggregation = {
         'Open': 'first',
         'High': 'max',
         'Low': 'min',
         'Close': 'last',
-        'Adj_Close': 'last',
-        'Volume': 'sum',
-        'Title': 'first'
+        'Adj_close': 'last',
+        'Volume': 'sum'
     }
 
-    df = df.set_index('Date').resample(rule).agg(aggregation).reset_index()
+    df = df.groupby("Title", group_keys=False).apply(
+    lambda x: x.set_index("Date").resample(rule).agg(aggregation).assign(Title=x["Title"].iloc[0])).reset_index()
 
     return df
+
 
 import sqlite3
 import pandas as pd
